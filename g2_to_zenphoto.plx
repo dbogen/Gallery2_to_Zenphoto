@@ -7,37 +7,41 @@ use strict;
 #
 # $host is the hostname of your database, probably localhost.
 #
-my $host = "ZEN_PHOTO_DB_HOST";
-my $user = "ZEN_PHOTO_USER";
-my $password = "ZEN_PHOTO_USER_PASSWORD";
+my $host = 'ZEN_PHOTO_DB_HOST';
+my $user = 'ZEN_PHOTO_USER';
+my $password = 'ZEN_PHOTO_USER_PASSWORD';
 
 #
 # $gallery2_db is the name of your Gallery2 database. Change as needed.
 #
-my $gallery2_db = "gallery2";
+my $gallery2_db = 'gallery2';
 
 #
 # This is the prefix in front of your gallery2 database tables. Change as
 # needed.
+# If this prefix is unnecessary, leave the quotes with nothing in them, like:
+# my $gallery2_db_prefix = '';
 #
-my $gallery2_db_prefix = "g2_";
+my $gallery2_db_prefix = 'g2_';
 
 #
 # $zenphoto_db is the name of your zenphoto dataabase. Change as needed.
 #
-my $zenphoto_db = "zenphoto";
+my $zenphoto_db = 'zenphoto';
 
 #
-# THis is the prefix in front of your zenphoto database tables. Change as needed.
+# This is the prefix in front of your zenphoto database tables. Change as needed.
+# If this prefix is unnecessary, leave the quotes with nothing in them, like:
+# my $zenphoto_db_prefix = '';
 #
-my $zenphoto_db_prefix = "zp_";
+my $zenphoto_db_prefix = 'zp_';
 
 #
 # $phototitle determines what the zenphoto title will be based upon
 # "title" will use the Gallery2 title of a photo
 # "summary" will use the Gallery2 summary of a photo
 #
-my $phototitle = "title";
+my $phototitle = 'title';
 ##############################################################################
 
 #
@@ -58,11 +62,11 @@ use DBI();
 # fit your needs.
 #
 my $dbh_gallery2 = DBI->connect("DBI:mysql:database=$gallery2_db;host=$host",
-  $user, $password, {'RaiseError' => 1});
+  $user, $password, {'RaiseError' => 1}) || 
+  die("Could not connect to Gallery2 database $gallery2_db:  $!\n");
 my $dbh_zp = DBI->connect("DBI:mysql:database=$zenphoto_db;host=$host",
   $user, $password, { RaiseError => 1, AutoCommit => 1 }) ||
-die("Could not connect to zenphoto: $!\n");
-my $counter = 0;
+  die("Could not connect to Zenphoto database $zenphoto_db: $!\n");
 
 my $cursor = $dbh_gallery2->prepare("select
   ${gallery2_db_prefix}FileSystemEntity.g_id,
@@ -73,7 +77,7 @@ my $cursor = $dbh_gallery2->prepare("select
   ${gallery2_db_prefix}FileSystemEntity,
   ${gallery2_db_prefix}Item where
   ${gallery2_db_prefix}FileSystemEntity.g_id = ${gallery2_db_prefix}Item.g_id;") ||
-  die "Prepare error ($DBI::errstr)";
+  die "Gallery2 prepare error ($DBI::errstr)\n";
 
 $cursor->execute() || die "Query error ($DBI::errstr)";
 
@@ -90,6 +94,7 @@ my $sql2 =
 my $sth1 = $dbh_zp->prepare($sql1);
 my $sth2 = $dbh_zp->prepare($sql2);
 
+my $counter = 0;
 my $rows_affected = 0;
 
 while(defined(my $row = $cursor->fetch)) {
@@ -99,8 +104,10 @@ while(defined(my $row = $cursor->fetch)) {
   my $description = $row->[3];
   $rows_affected = 0;
 
-  # If you're importing anything other than JPEGS, you'll need to modify the
+  #
+  # If you're importing anything other than JPEGs, you'll need to modify the
   # the regex below.
+  #
   if ($filenm =~ /\.jpg/io)
   {
     $rows_affected = $sth1->execute($summary, $description, $filenm)
